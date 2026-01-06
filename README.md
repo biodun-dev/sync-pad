@@ -2,13 +2,13 @@
 
 > **Tagline:** A local-first, collaborative document editor (think Google Docs or Notion).
 
-## 🚀 Project Overview
+## Project Overview
 
 SyncPad is a high-performance, offline-first collaborative text editor built to demonstrate advanced distributed system concepts on the frontend. It allows multiple users to edit documents simultaneously with real-time updates, presence awareness (live cursors), and conflict-free synchronization.
 
 Unlike traditional editors that rely on a central server for truth, SyncPad uses **CRDTs (Conflict-free Replicated Data Types)** to ensure that all peers eventually converge to the same state, regardless of network latency or offline intervals.
 
-## ✨ Key Features
+## Key Features
 
 -   **Real-time Collaboration**: Changes from other users appear instantly via WebSockets.
 -   **Offline-First Architecture**: Continue editing without an internet connection. Changes are persisted locally via `IndexedDB` and automatically merged when online.
@@ -16,7 +16,7 @@ Unlike traditional editors that rely on a central server for truth, SyncPad uses
 -   **Time-Travel Version History**: Save named snapshots of the document and restore previous states instantly.
 -   **Conflict-Free Merging**: Powered by Y.js to handle complex concurrent edits without data loss.
 
-## 🛠 Tech Stack & Seniority Factors
+## Tech Stack & Seniority Factors
 
 This project implements senior-level engineering patterns:
 
@@ -29,7 +29,7 @@ This project implements senior-level engineering patterns:
 | **Persistence** | **IndexedDB** (`y-indexeddb`) | Local database for offline capability. |
 | **Styling** | **Tailwind CSS 4** | Utility-first styling with a custom design system. |
 
-## 🏗 Architecture
+## Architecture
 
 SyncPad utilizes a **decentralized state model**:
 
@@ -38,7 +38,7 @@ SyncPad utilizes a **decentralized state model**:
 3.  **Convergence**: The Hocuspocus server acts as a relay. Even if the server crashes, no data is lost because the "truth" lives on the clients (Local-First).
 4.  **Sync Protocol**: On connection, clients exchange state vectors to determine missing updates.
 
-## 🚦 Getting Started
+## Getting Started
 
 ### Prerequisites
 -   Node.js 18+
@@ -70,5 +70,5 @@ pnpm dev
 5.  Start typing! You should see changes and cursors sync in real-time.
 6.  Disconnect one client (simulate offline) -> Type -> Reconnect -> Observe auto-merge.
 
-## 📜 License
+## License
 MIT
