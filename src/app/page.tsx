@@ -156,7 +156,7 @@ export default function Home() {
           />
       </div>
 
-      {/* Save Version Dialog */}
+
       <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
         <DialogContent>
             <DialogHeader>
@@ -180,7 +180,7 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* Restore Version Confirmation Dialog */}
+
       <Dialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
         <DialogContent>
             <DialogHeader>
