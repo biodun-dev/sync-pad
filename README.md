@@ -23,23 +23,16 @@ A premium, local-first collaborative document editor built with **Next.js**, **T
 
 ## Getting Started
 
-You need to run **two** processes: the Next.js frontend and the WebSocket server.
-
-### 1. Start the WebSocket Server (Backend)
-This handles the real-time syncing between users.
+Start the entire application (Frontend + WebSocket Server) with a single command:
 
 ```bash
-pnpm run server
+pnpm dev
 ```
-_Runs on port 1234._
 
-### 2. Start the Frontend Application
-This serves the UI.
+This will run:
+-   **Frontend:** http://localhost:3000
+-   **WebSocket Server:** ws://localhost:1234
 
-```bash
-pnpm run dev
-```
-_Runs on port 3000._
 
 ### 3. Open the App
 Visit [http://localhost:3000](http://localhost:3000).

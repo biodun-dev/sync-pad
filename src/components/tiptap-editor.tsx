@@ -25,14 +25,14 @@ const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const getRandomName = () => `User ${Math.floor(Math.random() * 100)}`;
 
 export default function TiptapEditor({ room = "default-room" }: { room?: string }) {
-  // We need to initialize YJS doc and providers only once or when room changes
-  // Using a state initialization function prevents recreation
-  const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
-  const [provider, setProvider] = useState<HocuspocusProvider | null>(null);
-
+  const [context, setContext] = useState<{
+    ydoc: Y.Doc;
+    provider: HocuspocusProvider;
+  } | null>(null);
   const [status, setStatus] = useState<"connected" | "disconnected">("disconnected");
 
   useEffect(() => {
+    setStatus("disconnected");
     const doc = new Y.Doc();
     
     // Offline persistence
@@ -47,30 +47,57 @@ export default function TiptapEditor({ room = "default-room" }: { room?: string 
       onClose: () => setStatus("disconnected"),
     });
 
-    setYdoc(doc);
-    setProvider(wsProvider);
+    // @ts-ignore - Polyfill for extensions that might expect 'doc' property
+    wsProvider.doc = doc;
+
+    setContext({ ydoc: doc, provider: wsProvider });
 
     return () => {
       wsProvider.destroy();
       indexeddbProvider.destroy();
-      doc.destroy();
+      // content is cleared on next effect run
     };
   }, [room]);
 
+  // Ensure strict synchronization between room prop and provider
+  if (!context || context.provider.configuration.name !== room) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px] text-muted-foreground animate-pulse">
+        Initializing Editor...
+      </div>
+    );
+  }
+
+  return <Editor room={room} ydoc={context.ydoc} provider={context.provider} status={status} />;
+}
+
+function Editor({ 
+    room, 
+    ydoc, 
+    provider, 
+    status 
+}: { 
+    room: string; 
+    ydoc: Y.Doc; 
+    provider: HocuspocusProvider; 
+    status: "connected" | "disconnected" 
+}) {
   const editor = useEditor(
     {
       extensions: [
         StarterKit.configure({
-           // history: false, // Type error workaround
+           // The Collaboration extension comes with its own history handling
+           // @ts-ignore
+           history: false,
         }),
         Placeholder.configure({
             placeholder: 'Start typing...',
         }),
         Collaboration.configure({
-          document: ydoc || undefined,
+          document: ydoc,
         }),
         CollaborationCursor.configure({
-          provider: provider || undefined,
+          provider: provider,
           user: {
             name: getRandomName(),
             color: getRandomColor(),
@@ -82,15 +109,15 @@ export default function TiptapEditor({ room = "default-room" }: { room?: string 
           class: "focus:outline-none min-h-[500px] prose prose-invert max-w-none p-4",
         },
       },
-      immediatelyRender: false, // Fix SSR hydration mismatch
+      immediatelyRender: false, 
     },
-    [ydoc, provider] // Re-initialize when these change
+    [ydoc, provider]
   );
 
-  if (!editor || !ydoc || !provider) {
+  if (!editor) {
     return (
       <div className="flex items-center justify-center min-h-[500px] text-muted-foreground animate-pulse">
-        Initializing Editor...
+        Loading Editor...
       </div>
     );
   }
