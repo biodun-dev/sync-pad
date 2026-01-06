@@ -5,10 +5,9 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import Placeholder from "@tiptap/extension-placeholder";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, JSONContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useEffect, useState } from "react";
-import { IndexeddbPersistence } from "y-indexeddb";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import * as Y from "yjs";
 
 const colors = [
@@ -24,64 +23,54 @@ const colors = [
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const getRandomName = () => `User ${Math.floor(Math.random() * 100)}`;
 
-export default function TiptapEditor({ room = "default-room" }: { room?: string }) {
-  const [context, setContext] = useState<{
+export interface TiptapEditorRef {
+    getJSON: () => JSONContent | null;
+    setContent: (content: JSONContent) => void;
+}
+
+interface TiptapEditorProps {
     ydoc: Y.Doc;
-    provider: HocuspocusProvider;
-  } | null>(null);
-  const [status, setStatus] = useState<"connected" | "disconnected">("disconnected");
+    provider: HocuspocusProvider | null;
+}
 
-  useEffect(() => {
-    setStatus("disconnected");
-    const doc = new Y.Doc();
-    
-    // Offline persistence
-    const indexeddbProvider = new IndexeddbPersistence(room, doc);
-    
-    // Sync provider
-    const wsProvider = new HocuspocusProvider({
-      url: "ws://localhost:1234",
-      name: room,
-      document: doc,
-      onConnect: () => setStatus("connected"),
-      onClose: () => setStatus("disconnected"),
-    });
-
-    // @ts-ignore - Polyfill for extensions that might expect 'doc' property
-    wsProvider.doc = doc;
-
-    setContext({ ydoc: doc, provider: wsProvider });
-
-    return () => {
-      wsProvider.destroy();
-      indexeddbProvider.destroy();
-      // content is cleared on next effect run
-    };
-  }, [room]);
-
-  // Ensure strict synchronization between room prop and provider
-  if (!context || context.provider.configuration.name !== room) {
-    return (
+const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(({ ydoc, provider }, ref) => {
+  if (!provider) {
+       return (
       <div className="flex items-center justify-center min-h-[500px] text-muted-foreground animate-pulse">
-        Initializing Editor...
+        Initializing connection...
       </div>
     );
   }
 
-  return <Editor room={room} ydoc={context.ydoc} provider={context.provider} status={status} />;
+  return <Editor ydoc={ydoc} provider={provider} ref={ref} />;
+});
+
+TiptapEditor.displayName = "TiptapEditor";
+export default TiptapEditor;
+
+interface EditorProps {
+    ydoc: Y.Doc;
+    provider: HocuspocusProvider;
 }
 
-function Editor({ 
-    room, 
+const Editor = forwardRef<TiptapEditorRef, EditorProps>(({ 
     ydoc, 
     provider, 
-    status 
-}: { 
-    room: string; 
-    ydoc: Y.Doc; 
-    provider: HocuspocusProvider; 
-    status: "connected" | "disconnected" 
-}) {
+}, ref) => {
+    const [status, setStatus] = useState<"connected" | "disconnected">("disconnected");
+    
+    useEffect(() => {
+        const onStatus = ({ status }: { status: "connected" | "disconnected" }) => {
+            setStatus(status);
+        };
+        
+        provider.on('status', onStatus);
+        
+        return () => {
+            provider.off('status', onStatus);
+        };
+    }, [provider]);
+
   const editor = useEditor(
     {
       extensions: [
@@ -113,6 +102,15 @@ function Editor({
     },
     [ydoc, provider]
   );
+  
+  useImperativeHandle(ref, () => ({
+      getJSON: () => editor?.getJSON() || null,
+      setContent: (content: JSONContent) => {
+          if (editor) {
+              editor.commands.setContent(content);
+          }
+      }
+  }), [editor]);
 
   if (!editor) {
     return (
@@ -124,11 +122,13 @@ function Editor({
 
   return (
     <div className="relative w-full border border-border rounded-lg bg-card text-card-foreground shadow-sm overflow-hidden">
-        {/* Status Indicator */}
+   
         <div className="absolute top-2 right-2 z-10 flex gap-2">
             <div className={cn("size-2 rounded-full", status === 'connected' ? 'bg-green-500' : 'bg-red-500')} />
         </div>
       <EditorContent editor={editor} />
     </div>
   );
-}
+});
+
+Editor.displayName = "Editor";
